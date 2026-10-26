@@ -1,74 +1,102 @@
-# 🚀 Script de Instalación y Configuración Completa de WPS Office para Linux
+# 🚀 Script de Configuración Multilingüe y Parches para WPS Office en Linux
 
-Este script de Bash, denominado `install.sh`, automatiza el proceso de instalación y configuración avanzada de una versión específica de **WPS Office (11.1.0.11723.XA)** para sistemas Linux basados en Debian/Ubuntu (arquitectura AMD64).
+Este script de Bash, denominado `install.sh`, automatiza la configuración avanzada, adición de paquetes de idioma, diccionarios ortográficos, instalación de fuentes complementarias y corrección de errores comunes para **WPS Office** en sistemas GNU/Linux (incluyendo Debian, Ubuntu, Deepin, Fedora, Arch y entornos GNOME).
 
-El objetivo principal es proporcionar una instalación funcional, multilingüe y libre de errores comunes, especialmente en lo referente a la exportación de PDF.
+A diferencia de métodos tradicionales intrusivos, este instalador **no elimina configuraciones existentes ni fuerza desinstalaciones**. Detecta dinámicamente el entorno de ejecución (instalaciones nativas en `.deb`/RPM, configuraciones locales de usuario en `~/.local/share/Kingsoft/office6` o empaquetadas en Flatpak) y aplica las configuraciones de manera modular y segura.
 
 ---
 
 ## ✨ Características Principales
 
-* **Desinstalación Limpia:** Elimina cualquier rastro de instalaciones previas de WPS Office, incluyendo versiones DEB y Flatpak, y limpia directorios de configuración residuales (`/opt/kingsoft`, `~/.local/share/Kingsoft/`, etc.).
-* **Instalación Base:** Instala la aplicación principal de WPS Office y las fuentes adicionales (`ttf-wps-fonts`) requeridas para la correcta visualización de símbolos.
-* **Soporte Multilingüe Avanzado:**
-    * Integra **Diccionarios de Corrección Ortográfica** en múltiples idiomas.
-    * Añade la traducción completa de la **Interfaz de Usuario (MUI)**, con especial énfasis en el **idioma español**.
-* **Corrección de Error de PDF:** Soluciona un error común de la librería `libtiff` que impide la correcta exportación y apertura de documentos PDF mediante la creación de un enlace simbólico necesario.
-* **Optimización del Sistema:** Ejecuta `sudo apt autoclean` para liberar espacio tras el proceso de desinstalación inicial.
+* **Detección Dinámica y Compatibilidad Universal (Deepin, GNOME, Flatpak):**
+  * Reconoce automáticamente perfiles locales de usuario (`~/.local/share/Kingsoft/office6`), binarios en `$PATH` (`wps`, `wpp`, `et`), paquetes del gestor del sistema (`dpkg`) o contenedores **Flatpak** (`com.wps.Office`).
+  * No requiere permisos de superusuario para copiar idiomas y diccionarios al perfil del usuario.
+* **Soporte Multilingüe con Selector Interactivo:**
+  * Integra diccionarios de corrección ortográfica (`dicts/`) y traducciones completas de interfaz (`mui/`).
+  * Estructura los diccionarios con compatibilidad dual (`dicts/LANG` y `dicts/spellcheck/LANG`) para garantizar reconocimiento en cualquier versión o compilación.
+  * Menú interactivo para elegir instalar:
+    1. Solo Español de México (`es_MX`) *(Por defecto)*
+    2. Solo Español de España (`es_ES`)
+    3. Todas las variantes de Español (`es_*`)
+    4. El catálogo completo multilingüe disponible
+    5. Un código regional manual (ej. `pt_BR`, `fr_FR`, `de_DE`)
+* **Gestión Inteligente de Fuentes (`ttf-wps-fonts`):** Comprueba si las fuentes tipográficas requeridas para fórmulas y símbolos (como Wingdings, MT Extra o Symbol) están presentes. Si faltan, prioriza la instalación del paquete local `.deb` o realiza una clonación directa a nivel de usuario (`~/.local/share/fonts/wps-office`) actualizando la caché con `fc-cache`.
+* **Corrección Automática de Exportación a PDF:** Detecta la ubicación de las librerías `libtiff` en el sistema (`libtiff.so.6` o `libtiff.so.7`) y genera el enlace simbólico hacia `libtiff.so.5`, solventando el problema conocido que impide abrir o exportar documentos en formato PDF.
+* **Seguro y No Destructivo:** No borra datos del usuario ni elimina paquetes del sistema; permite aplicar las mejoras sobre una instalación existente sin requerir cierres forzados manuales.
 
 ---
 
-## 📥 Instrucciones de Descarga del Paquete Base
+## ⚙️ Estructura del Repositorio
 
-Dado que el archivo `.deb` de WPS Office se actualiza constantemente, no se incluye directamente en este repositorio. Sigue estos pasos para obtener la versión más reciente:
+Asegúrate de mantener la siguiente estructura de archivos y carpetas antes de ejecutar el script:
 
-1.  Ve a la página oficial de descargas de WPS Office: **`https://www.wps.com/office/linux/`**
-2.  Busca la sección de descargas y selecciona el paquete para **DEB (64-bit)**.
-3.  Descarga el archivo.
-4.  Una vez descargado, **renombra** el archivo `.deb` que obtuviste (por ejemplo: `wps-office-xxx.deb`) al nombre que está hardcodeado en el script para asegurar una instalación correcta:
-
-    ```bash
-    wps-office.deb
-    ```
-    > **NOTA:** Si deseas usar otro nombre de archivo, asegúrate de editar la línea de instalación dentro de `install.sh`.
-
----
-
-## ⚙️ Requisitos
-
-Asegúrate de que los siguientes archivos y carpetas se encuentren en el **mismo directorio** que el script `install.sh`:
-
-1.  `wps-office.deb` (El paquete DEB de WPS Office, renombrado si es necesario).
-2.  `ttf-wps-fonts_1.0_all.deb` (Paquete de fuentes complementarias).
-3.  Carpeta `dicts/` (Contiene los diccionarios de corrección ortográfica).
-4.  Carpeta `mui/` (Contiene los archivos de traducción de la interfaz de usuario).
+```text
+├── install.sh                  # Script automatizado principal
+├── README.md                   # Documentación del proyecto
+├── ttf-wps-fonts_1.0_all.deb   # (Opcional) Paquete deb de fuentes complementarias
+├── dicts/                      # Carpetas de corrección ortográfica (es_MX, es_ES, etc.)
+└── mui/                        # Carpetas de interfaz traducida (es_MX, es_ES, etc.)
+```
 
 ---
 
 ## 💻 Modo de Uso
 
-1.  Descarga o clona este repositorio en tu máquina Linux.
-2.  **Asegúrate de haber descargado y renombrado el paquete DEB como se indica en la sección anterior.**
-3.  Abre la terminal en la ubicación del script.
-4.  Otorga permisos de ejecución al script:
+### 1. Preparar WPS Office
+Asegúrate de haber abierto WPS Office al menos una vez tras su instalación para que inicialice su estructura básica de configuración en tu perfil de usuario.
 
-    ```bash
-    chmod +x install.sh
-    ```
+### 2. Ejecutar el instalador
 
-5.  Ejecuta el script (se solicitará tu contraseña de `sudo`):
+1. Abre una terminal en la carpeta donde clonaste o descargaste este repositorio.
+2. Otorga permisos de ejecución al script:
+   ```bash
+   chmod +x install.sh
+   ```
+3. Ejecuta el script:
+   ```bash
+   ./install.sh
+   ```
+   *(Si es necesario crear enlaces de librerías del sistema para libtiff o instalar fuentes globales, el script solicitará permisos de `sudo` de forma puntual).*
 
-    ```bash
-    ./install.sh
-    ```
+### 3. Seleccionar la variante de idioma
 
-> **⚠️ Nota:** El script realiza la instalación, configuración de diccionarios/traducciones y la corrección de PDF de forma automática. Al finalizar, iniciará la aplicación WPS Office (`wps &`) para confirmar la instalación, una ves que lo inicies y aceptes los términos cierra la aplicación para que el script continué.
+Durante la ejecución, el script mostrará el paso a paso detallado y presentará el selector interactivo:
+
+```text
+Opciones disponibles:
+  1) Solo Español de México (es_MX)
+  2) Solo Español de España (es_ES)
+  3) Todas las variantes de Español (es_*)
+  4) Instalar absolutamente TODOS los paquetes disponibles
+  5) Especificar un código manual (ejemplo: pt_BR, fr_FR, de_DE)
+```
+
+Presiona el número correspondiente y pulsa `Enter` (por defecto se seleccionará la opción 1).
 
 ---
 
-## 🛠️ Solución del Error de PDF
+## 🌐 Cambiar el Idioma en WPS Office
 
-La corrección para el problema de PDF que no permite abrir ni exportar archivos en formato PDF se implementa automáticamente mediante el siguiente comando al finalizar el la ejecución del script:
+Una vez finalizado el script, si WPS Office no muestra la interfaz en tu variante de español de forma automática:
+
+1. Abre o reinicia **WPS Office**.
+2. En la pantalla principal o dentro de cualquier documento (Writer, Spreadsheets, Presentation), haz clic en el icono de **Ajustes / Herramientas** (icono de engranaje en la barra superior derecha).
+3. Selecciona la opción **"Switch Language"** o **"Cambiar idioma"**.
+4. Escoge la variante instalada (por ejemplo, *Español (México)* o *Español (España)*) y pulsa **Aceptar**.
+5. Reinicia la suite para aplicar la interfaz y el corrector ortográfico en español.
+
+---
+
+## 🛠️ Solución de Problemas Frecuentes
+
+### Error al exportar o abrir PDF (`libtiff`)
+
+Si tu distribución cuenta con una versión moderna de `libtiff`, el script intentará vincularla dinámicamente. De ser necesario realizar la corrección de forma manual:
 
 ```bash
+# Para sistemas Debian, Ubuntu, Deepin y derivados (64 bits):
 sudo ln -s /usr/lib/x86_64-linux-gnu/libtiff.so.6 /usr/lib/x86_64-linux-gnu/libtiff.so.5
+
+# Para distribuciones basadas en Arch / Fedora / openSUSE:
+sudo ln -s /usr/lib64/libtiff.so.6 /usr/lib64/libtiff.so.5
+```
